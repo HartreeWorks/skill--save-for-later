@@ -1,6 +1,6 @@
 ---
 name: save-for-later
-description: This skill should be used when the user says "/later", "save for later", "save this session", "come back to this later", "park this conversation", "/later list", "later list", "what did I save", "saved conversations", "resume saved", or mentions wanting to bookmark a conversation for later resumption.
+description: Save Claude Code conversations to a registry for later resumption, eliminating the need to keep terminal sessions open. This skill should be used when the user says "/later", "save for later", "save this session", "come back to this later", "park this conversation", "/later list", "later list", "what did I save", "saved conversations", "resume saved", or mentions wanting to bookmark a conversation for later resumption.
 ---
 
 # Save for later
@@ -16,17 +16,17 @@ Script location: `~/.claude/skills/save-for-later/scripts/later.py`
 
 ## Finding the current session ID
 
-To identify the current session, look up the most recent entry in `~/.claude/history.jsonl` matching the current working directory:
+To identify the current session, use the `get-session-id` subcommand:
 
 ```bash
-grep "$(pwd)" ~/.claude/history.jsonl | tail -1 | python3 -c "import sys,json; print(json.loads(sys.stdin.read())['sessionId'])"
+python3 ~/.claude/skills/save-for-later/scripts/later.py get-session-id --cwd "$(pwd)"
 ```
 
 ## Saving a conversation
 
 When the user says "/later" or "save for later":
 
-1. Find the current session ID using the method above
+1. Find the current session ID using the command above
 2. Ask the user for a brief description of the task (or use the first prompt as fallback)
 3. Run the save command:
 
@@ -50,7 +50,7 @@ After saving the current session (or when the user wants to tidy up), discover o
 python3 ~/.claude/skills/save-for-later/scripts/later.py discover --exclude-pid CURRENT_PID
 ```
 
-To find the current PID: `echo $$` in bash, or use `os.getpid()`.
+To find the current PID: `echo $$`.
 
 This outputs JSON with all active interactive claude sessions, including context extracted from their session files:
 - `firstPrompt`: what the conversation started with

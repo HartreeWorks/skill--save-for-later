@@ -7,6 +7,7 @@ Usage:
   later.py list [--all]
   later.py done --id ID
   later.py remove --id ID
+  later.py get-session-id --cwd PATH
   later.py discover [--exclude-pid PID]
   later.py kill --pid PID
 
@@ -261,11 +262,22 @@ def get_active_claude_sessions(exclude_pid=None):
 def cmd_save(args):
     registry = load_registry()
 
-    # Check for duplicate session ID
+    # Check for existing entry with this session ID
     for c in registry["conversations"]:
-        if c["sessionId"] == args.session_id and c["status"] == "active":
-            print(f"Session already saved as #{c['id']}: {c['description']}")
-            sys.exit(0)
+        if c["sessionId"] == args.session_id:
+            if c["status"] == "active":
+                print(f"Session already saved as #{c['id']}: {c['description']}")
+                sys.exit(0)
+            # Reactivate a done/removed session instead of creating a duplicate
+            c["status"] = "active"
+            c["savedAt"] = datetime.now().isoformat()
+            if args.description:
+                c["description"] = args.description
+            save_registry(registry)
+            print(f"Reactivated #{c['id']}: {c['description']}")
+            print(f"  Session: {args.session_id}")
+            print(f"\nResume later with: claude --resume {args.session_id}")
+            return
 
     first_prompt = get_first_prompt(args.session_id)
     description = args.description or first_prompt or "No description"
@@ -355,6 +367,16 @@ def cmd_remove(args):
     sys.exit(1)
 
 
+def cmd_get_session_id(args):
+    """Print the most recent session ID for the given working directory."""
+    session_id = find_session_id_for_cwd(args.cwd)
+    if session_id:
+        print(session_id)
+    else:
+        print(f"No session found for {args.cwd}", file=sys.stderr)
+        sys.exit(1)
+
+
 def cmd_discover(args):
     """Discover other active claude sessions and output their context as JSON."""
     exclude_pid = args.exclude_pid if hasattr(args, "exclude_pid") and args.exclude_pid else None
@@ -397,6 +419,9 @@ def main():
     remove_parser = subparsers.add_parser("remove", help="Remove a conversation from the list")
     remove_parser.add_argument("--id", type=int, required=True, help="Conversation ID")
 
+    session_id_parser = subparsers.add_parser("get-session-id", help="Get session ID for a working directory")
+    session_id_parser.add_argument("--cwd", required=True, help="Working directory path")
+
     discover_parser = subparsers.add_parser("discover", help="Discover active claude sessions")
     discover_parser.add_argument("--exclude-pid", type=int, help="PID to exclude (current session)")
 
@@ -413,6 +438,8 @@ def main():
         cmd_done(args)
     elif args.command == "remove":
         cmd_remove(args)
+    elif args.command == "get-session-id":
+        cmd_get_session_id(args)
     elif args.command == "discover":
         cmd_discover(args)
     elif args.command == "kill":

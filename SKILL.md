@@ -138,7 +138,3 @@ python3 ~/.claude/skills/save-for-later/scripts/later.py remove --id ID_NUMBER
 - "save for later", "park this", "come back to this later" — **save**
 - "what did I save", "saved conversations", "what's parked", "resume saved" — **list**
 - If ambiguous, ask the user whether they want to save the current session or review saved ones
-
-## Update check
-
-This skill is managed by [skills.sh](https://skills.sh). To check for updates, run `npx skills update`.
